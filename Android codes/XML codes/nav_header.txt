@@ -1,0 +1,21 @@
+nav_header.xml
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="192dp"
+    android:background="@drawable/the_speaking_glove"
+    android:padding="16dp"
+    android:theme="@style/ThemeOverlay.AppCompat.Dark"
+    android:orientation="vertical"
+    android:gravity="bottom">
+
+  <TextView
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="Developed by:\n Student of Colegio de Montalaban"
+      android:textSize="16sp"
+      app:autoSizeMaxTextSize="16sp"
+      app:autoSizeMinTextSize="12sp" />
+</LinearLayout>

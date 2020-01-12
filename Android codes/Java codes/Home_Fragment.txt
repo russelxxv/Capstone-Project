@@ -1,0 +1,280 @@
+Home_Fragment.java
+
+package com.colegiodemontalban.speakingglove.psdspeakingglove;
+
+import android.database.Cursor;
+import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.Toast;
+
+import java.util.ArrayList;
+
+public class Home_Fragment extends Fragment {
+    ListView LV;
+    ArrayList<Integer> idImages;
+    ArrayList<String> nameList;
+    ArrayList<String> nameListPosotion;
+    Myadapter myadapter;
+    DatabaseHelper myDB;
+    String IdselectedItem;
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        View rootView = inflater.inflate(R.layout.home_frag,container,false);
+
+        LV = (ListView) rootView.findViewById(R.id.listView);
+        HandList_Fill();
+
+        LV.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, final int position, long l) {
+                final  AlertDialog.Builder mBuilder = new AlertDialog.Builder(getActivity());
+                LayoutInflater inflater = LayoutInflater.from(getActivity());
+                View mview = inflater.inflate(R.layout.activity_update_dialog, null);
+                mBuilder.setView(mview);
+                final EditText mEmail = mview.findViewById(R.id.etTextToSpeech);
+                mEmail.setHint(nameList.get(position));
+                IdselectedItem = nameListPosotion.get(position);
+
+                final AlertDialog dialog = mBuilder.create();
+                dialog.show();
+
+                mview.findViewById(R.id.btnSaveTexttoSpeech).setOnClickListener(new View.OnClickListener() {
+                    @Override
+
+                    public void onClick(View view) {
+                        String text_speech = mEmail.getText().toString();
+                        if (text_speech.isEmpty()) {
+                            text_speech = "Not Set";
+                            myDB = new DatabaseHelper(getActivity());
+                            Boolean result =  myDB.updateData_Text_to_Speech(IdselectedItem,text_speech);
+                            if (result) {
+                                Toast.makeText(getActivity(), "Update Success", Toast.LENGTH_LONG).show();
+                                HandList_Fill();
+                                dialog.dismiss();
+                            } else {
+                                Toast.makeText(getActivity(), "Cannot Update Error !", Toast.LENGTH_LONG).show();
+                            }
+                        } else {
+                            if (text_speech.matches("^[0-9]*$")) {
+                                mEmail.setError("Speech Text must not contain numbers or speacila characters.");
+                                mEmail.requestFocus();
+                                return;
+                            }
+                            myDB = new DatabaseHelper(getActivity());
+                            Boolean result =  myDB.updateData_Text_to_Speech(IdselectedItem,text_speech);
+                            if (result) {
+                                Toast.makeText(getActivity(), "Update Success", Toast.LENGTH_LONG).show();
+                                HandList_Fill();
+                                dialog.dismiss();
+                            } else {
+                                Toast.makeText(getActivity(), "Cannot Update Error !", Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    }
+                });
+            }
+        });
+        return rootView;
+    }
+
+    public ArrayList<Integer> getList() {
+        idImages = new ArrayList<>();
+        idImages.add(R.drawable.h_first);
+        idImages.add(R.drawable.h_two);
+        idImages.add(R.drawable.h_three);
+        idImages.add(R.drawable.h_four);
+        idImages.add(R.drawable.h_five);
+        idImages.add(R.drawable.h_six);
+
+        idImages.add(R.drawable.h_seven);
+        idImages.add(R.drawable.h_eight);
+        idImages.add(R.drawable.h_nine);
+        idImages.add(R.drawable.h_ten);
+        idImages.add(R.drawable.h_eleven);
+
+        idImages.add(R.drawable.h_twelve);
+        idImages.add(R.drawable.h_thirteen);
+        idImages.add(R.drawable.h_fourteen);
+        idImages.add(R.drawable.h_fifteen);
+        idImages.add(R.drawable.h_sixteen);
+
+        idImages.add(R.drawable.h_seventeen);
+        idImages.add(R.drawable.h_eighteen);
+        idImages.add(R.drawable.h_nineteen);
+        idImages.add(R.drawable.h_twenty);
+        idImages.add(R.drawable.h_twenty_one);
+
+        idImages.add(R.drawable.h_twenty_two);
+        idImages.add(R.drawable.h_twenty_three);
+        idImages.add(R.drawable.h_twenty_four);
+        idImages.add(R.drawable.h_twenty_five);
+
+        idImages.add(R.drawable.h_twenty_six);
+        idImages.add(R.drawable.h_twenty_seven);
+        idImages.add(R.drawable.h_twenty_eight);
+        idImages.add(R.drawable.h_twenty_nine);
+        idImages.add(R.drawable.h_thirty);
+        idImages.add(R.drawable.h_thirty_one);
+        idImages.add(R.drawable.h_thirty_two);
+
+        idImages.add(R.drawable.h_thirty_three);
+        idImages.add(R.drawable.h_thirty_four);
+        idImages.add(R.drawable.h_thirty_five);
+        idImages.add(R.drawable.h_thirty_six);
+        idImages.add(R.drawable.h_thirty_seven);
+        idImages.add(R.drawable.h_thirty_eight);
+        idImages.add(R.drawable.h_thirty_nine);
+        idImages.add(R.drawable.h_fourty);
+
+        idImages.add(R.drawable.h_fourty_one);
+        idImages.add(R.drawable.h_fourty_two);
+        idImages.add(R.drawable.h_fourty_three);
+        idImages.add(R.drawable.h_fourty_four);
+        idImages.add(R.drawable.h_fourty_five);
+        idImages.add(R.drawable.h_fourty_six);
+        idImages.add(R.drawable.h_fourty_seven);
+        idImages.add(R.drawable.h_fourty_eight);
+        idImages.add(R.drawable.h_fourty_nine);
+        idImages.add(R.drawable.h_fifty);
+
+        return idImages;
+    }
+
+    public ArrayList<String> getNameList() {
+        nameList = new ArrayList<>();
+        nameListPosotion = new ArrayList<>();
+
+
+        myDB = new DatabaseHelper(getActivity());
+        Cursor get_Speech_text = myDB.getData_speech_text();
+
+        String  data_one = "", data_two = "", data_three = "", data_four = "", data_five = "", data_six = "", data_seven = "", data_eight = "",
+                data_nine = "", data_ten = "", data_eleven = "", data_twelve = "", data_thirteen = "", data_fourteen = "", data_fifteen = "",
+                data_sixteen = "", data_seventeen = "", data_eighteen = "", data_nineteen = "", data_twenty = "", data_tone = "",
+                data_ttwo = "", data_tthree = "", data_tfour = "", data_tfive = "", data_tsix = "", data_tseven = "", data_teight = "",
+                data_tnine = "", data_thirty = "", data_thone = "", data_thtwo = "", data_ththree = "",data_thfour = "", data_thfive = "",
+                data_thsix = "", data_thseven = "", data_theight = "", data_thnine = "", data_fourty = "", data_fourty_one = "",
+                data_fourty_two = "", data_fourty_three = "", data_fourty_four = "", data_fourty_five = "", data_fourty_six = "",
+                data_fourty_seven = "", data_fourty_eight = "", data_fourty_nine = "", data_fifty = "";
+
+        String  id_one = "", id_two = "", id_three = "", id_four = "", id_five = "",
+                id_six = "", id_seven = "", id_eight = "", id_nine = "", id_ten = "",
+                id_eleven = "", id_twelve = "", id_thirteen = "", id_fourteen = "",
+                id_fifteen = "", id_sixteen = "", id_seventeen = "", id_eighteen = "",
+                id_nineteen = "", id_twenty = "", id_tw_one = "", id_tw_two = "",
+                id_tw_three = "", id_tw_four = "", id_tw_five = "", id_tw_six = "",
+                id_tw_seven = "", id_tw_eight = "", id_tw_nine = "", id_thirty = "", id_thone = "", id_thtwo = "",
+                id_ththree = "", id_thfour = "", id_thfive = "", id_thsix = "", id_thseven = "",
+                id_theight = "", id_thnine = "", id_fourty = "", id_fourty_one = "",
+                id_fourty_two = "", id_fourty_three = "", id_fourty_four = "", id_fourty_five = "", id_fourty_six = "", id_fourty_seven = "",
+                id_fourty_eight = "", id_fourty_nine = "", id_fifty = "";
+
+        int i = 1;
+        while (i != 51 && get_Speech_text.moveToNext()){
+            if (i == 1) { data_one = get_Speech_text.getString(1); id_one = get_Speech_text.getString(0); }
+            else if (i == 2) { data_two = get_Speech_text.getString(1); id_two = get_Speech_text.getString(0);}
+            else if (i == 3) { data_three = get_Speech_text.getString(1); id_three = get_Speech_text.getString(0); }
+            else if (i == 4) { data_four = get_Speech_text.getString(1); id_four = get_Speech_text.getString(0); }
+            else if (i == 5) { data_five = get_Speech_text.getString(1); id_five = get_Speech_text.getString(0); }
+            else if (i == 6) { data_six = get_Speech_text.getString(1); id_six = get_Speech_text.getString(0); }
+            else if (i == 7) { data_seven = get_Speech_text.getString(1); id_seven = get_Speech_text.getString(0); }
+            else if (i == 8) { data_eight = get_Speech_text.getString(1); id_eight = get_Speech_text.getString(0); }
+            else if (i == 9) { data_nine = get_Speech_text.getString(1); id_nine = get_Speech_text.getString(0); }
+            else if (i == 10) { data_ten = get_Speech_text.getString(1); id_ten = get_Speech_text.getString(0); }
+            else if (i == 11) { data_eleven = get_Speech_text.getString(1); id_eleven = get_Speech_text.getString(0); }
+            else if (i == 12) { data_twelve = get_Speech_text.getString(1); id_twelve = get_Speech_text.getString(0); }
+            else if (i == 13) { data_thirteen = get_Speech_text.getString(1); id_thirteen = get_Speech_text.getString(0); }
+            else if (i == 14) { data_fourteen = get_Speech_text.getString(1); id_fourteen = get_Speech_text.getString(0); }
+            else if (i == 15) { data_fifteen = get_Speech_text.getString(1); id_fifteen = get_Speech_text.getString(0); }
+            else if (i == 16) { data_sixteen = get_Speech_text.getString(1); id_sixteen = get_Speech_text.getString(0); }
+            else if (i == 17) { data_seventeen = get_Speech_text.getString(1); id_seventeen = get_Speech_text.getString(0); }
+            else if (i == 18) { data_eighteen = get_Speech_text.getString(1); id_eighteen = get_Speech_text.getString(0); }
+            else if (i == 19) { data_nineteen = get_Speech_text.getString(1); id_nineteen = get_Speech_text.getString(0); }
+            else if (i == 20) { data_twenty = get_Speech_text.getString(1); id_twenty = get_Speech_text.getString(0); }
+            else if (i == 21) { data_tone = get_Speech_text.getString(1); id_tw_one = get_Speech_text.getString(0); }
+            else if (i == 22) { data_ttwo = get_Speech_text.getString(1); id_tw_two = get_Speech_text.getString(0); }
+            else if (i == 23) { data_tthree = get_Speech_text.getString(1); id_tw_three = get_Speech_text.getString(0); }
+            else if (i == 24) { data_tfour = get_Speech_text.getString(1); id_tw_four = get_Speech_text.getString(0); }
+            else if (i == 25) { data_tfive = get_Speech_text.getString(1); id_tw_five = get_Speech_text.getString(0); }
+            else if (i == 26) { data_tsix = get_Speech_text.getString(1); id_tw_six = get_Speech_text.getString(0); }
+            else if (i == 27) { data_tseven = get_Speech_text.getString(1); id_tw_seven = get_Speech_text.getString(0); }
+            else if (i == 28) { data_teight = get_Speech_text.getString(1); id_tw_eight = get_Speech_text.getString(0); }
+            else if (i == 29) { data_tnine = get_Speech_text.getString(1); id_tw_nine = get_Speech_text.getString(0); }
+            else if (i == 30) { data_thirty = get_Speech_text.getString(1); id_thirty = get_Speech_text.getString(0); }
+            else if (i == 31) { data_thone = get_Speech_text.getString(1); id_thone = get_Speech_text.getString(0); }
+            else if (i == 32) { data_thtwo = get_Speech_text.getString(1); id_thtwo = get_Speech_text.getString(0); }
+            else if (i == 33) { data_ththree = get_Speech_text.getString(1); id_ththree = get_Speech_text.getString(0); }
+            else if (i == 34) { data_thfour = get_Speech_text.getString(1); id_thfour = get_Speech_text.getString(0); }
+            else if (i == 35) { data_thfive = get_Speech_text.getString(1); id_thfive = get_Speech_text.getString(0); }
+            else if (i == 36) { data_thsix = get_Speech_text.getString(1); id_thsix = get_Speech_text.getString(0); }
+            else if (i == 37) { data_thseven = get_Speech_text.getString(1); id_thseven = get_Speech_text.getString(0); }
+            else if (i == 38) { data_theight = get_Speech_text.getString(1); id_theight = get_Speech_text.getString(0); }
+            else if (i == 39) { data_thnine = get_Speech_text.getString(1); id_thnine = get_Speech_text.getString(0); }
+            else if (i == 40) { data_fourty = get_Speech_text.getString(1); id_fourty = get_Speech_text.getString(0); }
+            else if (i == 41) { data_fourty_one = get_Speech_text.getString(1); id_fourty_one = get_Speech_text.getString(0); }
+            else if (i == 42) { data_fourty_two = get_Speech_text.getString(1); id_fourty_two = get_Speech_text.getString(0); }
+            else if (i == 43) { data_fourty_three = get_Speech_text.getString(1); id_fourty_three = get_Speech_text.getString(0); }
+            else if (i == 44) { data_fourty_four = get_Speech_text.getString(1); id_fourty_four = get_Speech_text.getString(0); }
+            else if (i == 45) { data_fourty_five = get_Speech_text.getString(1); id_fourty_five = get_Speech_text.getString(0); }
+            else if (i == 46) { data_fourty_six = get_Speech_text.getString(1); id_fourty_six = get_Speech_text.getString(0); }
+            else if (i == 47) { data_fourty_seven = get_Speech_text.getString(1); id_fourty_seven = get_Speech_text.getString(0); }
+            else if (i == 48) { data_fourty_eight = get_Speech_text.getString(1); id_fourty_eight = get_Speech_text.getString(0); }
+            else if (i == 49) { data_fourty_nine = get_Speech_text.getString(1); id_fourty_nine = get_Speech_text.getString(0); }
+            else if (i == 50) { data_fifty = get_Speech_text.getString(1); id_fifty = get_Speech_text.getString(0); }
+            i++;
+        }
+
+
+        nameList.add(data_one); nameList.add(data_two); nameList.add(data_three); nameList.add(data_four); nameList.add(data_five);
+        nameList.add(data_six); nameList.add(data_seven); nameList.add(data_eight); nameList.add(data_nine); nameList.add(data_ten);
+        nameList.add(data_eleven); nameList.add(data_twelve); nameList.add(data_thirteen); nameList.add(data_fourteen); nameList.add(data_fifteen);
+        nameList.add(data_sixteen); nameList.add(data_seventeen); nameList.add(data_eighteen); nameList.add(data_nineteen); nameList.add(data_twenty);
+        nameList.add(data_tone); nameList.add(data_ttwo); nameList.add(data_tthree); nameList.add(data_tfour); nameList.add(data_tfive);
+        nameList.add(data_tsix); nameList.add(data_tseven); nameList.add(data_teight); nameList.add(data_tnine); nameList.add(data_thirty);
+        nameList.add(data_thone); nameList.add(data_thtwo); nameList.add(data_ththree); nameList.add(data_thfour); nameList.add(data_thfive);
+        nameList.add(data_thsix); nameList.add(data_thseven); nameList.add(data_theight); nameList.add(data_thnine); nameList.add(data_fourty);
+        nameList.add(data_fourty_one); nameList.add(data_fourty_two); nameList.add(data_fourty_three); nameList.add(data_fourty_four);
+        nameList.add(data_fourty_five); nameList.add(data_fourty_six); nameList.add(data_fourty_seven); nameList.add(data_fourty_eight);
+        nameList.add(data_fourty_nine); nameList.add(data_fifty);
+
+        nameListPosotion.add(id_one); nameListPosotion.add(id_two); nameListPosotion.add(id_three); nameListPosotion.add(id_four);
+        nameListPosotion.add(id_five); nameListPosotion.add(id_six); nameListPosotion.add(id_seven); nameListPosotion.add(id_eight);
+        nameListPosotion.add(id_nine); nameListPosotion.add(id_ten); nameListPosotion.add(id_eleven); nameListPosotion.add(id_twelve);
+        nameListPosotion.add(id_thirteen); nameListPosotion.add(id_fourteen); nameListPosotion.add(id_fifteen);
+        nameListPosotion.add(id_sixteen); nameListPosotion.add(id_seventeen); nameListPosotion.add(id_eighteen);
+        nameListPosotion.add(id_nineteen);
+        nameListPosotion.add(id_twenty); nameListPosotion.add(id_tw_one); nameListPosotion.add(id_tw_two); nameListPosotion.add(id_tw_three);
+        nameListPosotion.add(id_tw_four); nameListPosotion.add(id_tw_five); nameListPosotion.add(id_tw_six); nameListPosotion.add(id_tw_seven);
+        nameListPosotion.add(id_tw_eight); nameListPosotion.add(id_tw_nine); nameListPosotion.add(id_thirty); nameListPosotion.add(id_thone);
+        nameListPosotion.add(id_thtwo); nameListPosotion.add(id_ththree); nameListPosotion.add(id_thfour); nameListPosotion.add(id_thfive);
+        nameListPosotion.add(id_thsix); nameListPosotion.add(id_thseven); nameListPosotion.add(id_theight); nameListPosotion.add(id_thnine);
+        nameListPosotion.add(id_fourty);
+
+        nameListPosotion.add(id_fourty_one); nameListPosotion.add(id_fourty_two); nameListPosotion.add(id_fourty_three);
+        nameListPosotion.add(id_fourty_four); nameListPosotion.add(id_fourty_five); nameListPosotion.add(id_fourty_six);
+        nameListPosotion.add(id_fourty_seven); nameListPosotion.add(id_fourty_eight); nameListPosotion.add(id_fourty_nine);
+        nameListPosotion.add(id_fifty);
+
+        return nameList;
+    }
+
+    public void HandList_Fill() {
+        idImages = new ArrayList<>();
+        nameList = new ArrayList<>();
+        idImages = getList();
+        nameList = getNameList();
+        myadapter = new Myadapter(getActivity(), idImages, nameList);
+        LV.setAdapter(myadapter);
+    }
+}

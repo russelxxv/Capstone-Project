@@ -1,0 +1,23 @@
+drawer_view.xml
+
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_home"
+            android:icon="@drawable/ic_home"
+            android:title="@string/tools" />
+        <item
+            android:id="@+id/nav_speech_totext"
+            android:icon="@drawable/ic_speechtotext"
+            android:title="@string/nav_speechtotext" />
+        <item
+            android:id="@+id/nav_bluetooth"
+            android:icon="@drawable/ic_bluetooth"
+            android:title="BT Status" />
+        <item
+            android:id="@+id/nav_exitprogram"
+            android:icon="@drawable/ic_exitprogram"
+            android:title="@string/nav_close" />
+     </group>
+ </menu>

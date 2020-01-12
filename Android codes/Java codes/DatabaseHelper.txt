@@ -1,0 +1,76 @@
+DatabaseHelper.java
+
+package com.colegiodemontalban.speakingglove.psdspeakingglove;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+public class DatabaseHelper extends SQLiteOpenHelper {
+
+
+    public static final String DB_NAME = "speaking_glove.db";
+    public static final String TB_HandFigures = "hand_figures";
+    public static final String TB_SpeechText = "speech_text";
+    public static final String ID = "id";
+    public static final String HF_Hnd_Fgrs = "figures_hand";
+    public static final String ST_SpchTxt = "text_speech";
+    SQLiteDatabase db;
+    private static final int DB_Version = 1;
+
+    private static final String CREATE_TB_HandFigures = "CREATE TABLE "+ TB_HandFigures + "("+ ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "+ HF_Hnd_Fgrs + " BLOB)";
+    private static final String  CREATE_TB_SpeechText = "CREATE TABLE "+ TB_SpeechText +"("+ ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + ST_SpchTxt + " VARCHAR)";
+
+
+    public DatabaseHelper(Context context){
+        super(context, DB_NAME,null, DB_Version);
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase sqLiteDatabase) {
+        sqLiteDatabase.execSQL(CREATE_TB_HandFigures);
+        sqLiteDatabase.execSQL(CREATE_TB_SpeechText);
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
+
+        String HandFigures = "DROP TABLE IF EXISTS "+ TB_HandFigures;
+        String SpeechText = "DROP TABLE IF EXISTS "+ TB_SpeechText;
+
+
+        sqLiteDatabase.execSQL(HandFigures);
+        sqLiteDatabase.execSQL(SpeechText);
+
+        onCreate(sqLiteDatabase);
+    }
+
+    public Cursor getData_speech_text (){
+        db = this.getWritableDatabase();
+        Cursor get_Data = db.rawQuery("SELECT * FROM " + TB_SpeechText, null);
+        return get_Data;
+    }
+
+   public boolean updateData_Text_to_Speech(String id, String text_speech) {
+        db = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(ST_SpchTxt, text_speech);
+        int result = db.update(TB_SpeechText, contentValues, "id =?", new String[]{id});
+        if(result>0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public void addData(String speech_text_insert) {
+        db = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(ST_SpchTxt, speech_text_insert);
+
+        db.insert(TB_SpeechText, null, contentValues);
+    }
+
+}

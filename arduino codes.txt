@@ -1,0 +1,547 @@
+#include<Wire.h>
+#include <MPU6050.h>
+
+MPU6050 mpu;
+boolean StartGesture = false;
+String voice;
+/// Timers
+///unsigned long timer = 0;
+float timeStep = 0.01;
+int CurrentGes;
+/// Pitch, Roll and Yaw values
+float pitch = 0;
+float roll = 0;
+float yaw = 0;
+
+float ThumbLimit = 40.00;
+float IndexLimit = 50.00;
+float MiddleLimit = 50.00;
+float RingLimit = 250.00;
+float SmallLimit = 200.00;
+
+const int LedThumb = 2;
+const int LedIndexs = 6;
+const int LedMiddle = 5;
+const int LedRing = 4;
+const int LedSmallss = 3;
+
+const int FLEX_ThumbFinger = A1; // Pin connected to voltage divider output
+const int FLEX_IndexFinger = A2;
+const int FLEX_MiddleFinger = A3;
+const int FLEX_RingFinger = A4;
+const int FLEX_SmallFinger = A5;
+
+const float VCC = 4.5; // Measured voltage of Ardunio 5V line
+const float R_DIV = 9500.0; // Measured resistance of 3.3k resistor
+const float STRAIGHT_RESISTANCE = 37300.0; // resistance when straight
+const float BEND_RESISTANCE = 90000.0; // resistance at 90 deg
+
+boolean SerialVal = false;
+
+void setup() { // VOID SETUP
+  // put your setup code here, to run once:
+  //Serial.begin(9600);
+  Serial.begin(38400);
+
+  pinMode(FLEX_ThumbFinger, INPUT);
+  pinMode(FLEX_IndexFinger, INPUT);
+  pinMode(FLEX_MiddleFinger, INPUT);
+  pinMode(FLEX_RingFinger, INPUT);
+  pinMode(FLEX_SmallFinger, INPUT);
+
+  pinMode(LedThumb, OUTPUT);
+  pinMode(LedIndexs, OUTPUT);
+  pinMode(LedMiddle, OUTPUT);
+  pinMode(LedRing, OUTPUT);
+  pinMode(LedSmallss, OUTPUT);
+
+  // Initialize MPU6050
+  while (!mpu.begin(MPU6050_SCALE_2000DPS, MPU6050_RANGE_2G))
+  {
+    Serial.println("Could not find a valeid MPU6050 sensor, check wiring!");
+    delay(500);
+  }
+  // Calibrate gyroscope. The calibration must be at rest.
+  // If you don't want calibrate, comment this line.
+  //mpu.calibrateGyro();
+
+  // Set threshold sensivty. Default 3.
+  // If you don't want use threshold, comment this line or set 0.
+  // mpu.setThreshold(3);
+} // VOID SETUP
+
+void loop() { // VOID LOOP
+  int sleepy = 0;
+  // Read normalized values
+  Vector normAccel = mpu.readNormalizeAccel(); //Acceleromoter
+
+  // Calculate Pitch & Roll & YAW
+  //ETO TAMA TO
+  int pitch = -(atan2(normAccel.XAxis, sqrt(normAccel.YAxis * normAccel.YAxis + normAccel.ZAxis * normAccel.ZAxis)) * 180.0) / M_PI;
+  int roll = (atan2(normAccel.YAxis, normAccel.ZAxis) * 180.0) / M_PI;
+
+  ////********************************* BELOW IS THE CODE FOR FLEX SENSOR ***********************//////////
+  /// Read the THUMB ADC, and calculate voltage and resistance from it **********************
+  int ThumbADC = analogRead(FLEX_ThumbFinger);                                           ///*
+  float ThumbV = ThumbADC * VCC / 1023.0;                                                ///*
+  float ThumbR = R_DIV * (VCC / ThumbV - 1.0);                                           ///*
+  /// Read the  INDEX ADC, and calculate voltage and resistance from it                  ///*
+  int IndexADC = analogRead(FLEX_IndexFinger);                                           ///*
+  float IndexV = IndexADC * VCC / 1023.0;                                                ///*
+  float IndexR = R_DIV * (VCC / IndexV - 1.0);                                           ///*
+  /// Read the  MIDDLE ADC, and calculate voltage and resistance from it                ///*
+  int MiddleADC = analogRead(FLEX_MiddleFinger);                                         ///*
+  float MiddleV = MiddleADC * VCC / 1023.0;                                              ///*
+  float MiddleR = R_DIV * (VCC / MiddleV - 1.0);                                         ///*
+  /// Read the  RING ADC, and calculate voltage and resistance from it                  ///*
+  int RingADC = analogRead(FLEX_RingFinger);                                             ///*
+  float RingV = RingADC * VCC / 1023.0;                                                  ///*
+  float RingR = R_DIV * (VCC / RingV - 1.0);                                             ///*
+  /// Read the  SMALL ADC, and calculate voltage and resistance from it                 ///*
+  int SmallADC = analogRead(FLEX_SmallFinger);                                           ///*
+  float SmallV = SmallADC * VCC / 1023.0;                                                ///*
+  float SmallR = R_DIV * (VCC / SmallV - 1.0);                                           ///*
+  ///**************************************END OF BURATI*************************************
+
+  /// Use the calculated resistance to estimate the sensor's
+  /// bend angle:
+  float ThumbAngle = map(ThumbR, STRAIGHT_RESISTANCE, BEND_RESISTANCE, 0, 90.0);
+  float IndexAngle = map(IndexR, STRAIGHT_RESISTANCE, BEND_RESISTANCE, 0, 90.0);
+  float MiddleAngle = map(MiddleR, STRAIGHT_RESISTANCE, BEND_RESISTANCE, 0, 90.0);
+  float RingAngle = map(RingR, STRAIGHT_RESISTANCE, BEND_RESISTANCE, 0, 90.0);
+  float SmallAngle = map(SmallR, STRAIGHT_RESISTANCE, BEND_RESISTANCE, 0, 90.0);
+
+  ////////////////////*********************** BELOW IS THE MAIN LOGIC OF THE OPERATIONS **********************///
+
+
+  /// FOR CALIBRATION
+  if ((pitch >= -50 && pitch <= -1 || pitch >= 0 && pitch <= 40) && (roll >= -10 && roll <= -1 || roll >= 0 && roll <= 10))
+  { //CALIBRATION
+    delay(200);
+    LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+    if (ThumbAngle <= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle <= RingLimit && SmallAngle <= SmallLimit) { //FOR CALIBRATION
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (StartGesture == false) {
+        StartGesture = true;
+      }
+    }
+  }
+  int Loops = 0;
+  if (StartGesture == true) {
+    Loops = 0;
+    if (SerialVal == false) {
+      SerialVal = true;
+      Loops = 0;
+      Serial.println("155");
+    }
+    //delay(1500);
+    while (Loops <= 900) {
+      Loops++;
+      delay(2);
+    }
+    if ((pitch >= -50 && pitch <= -1 || pitch >= 0 && pitch <= 40) && (roll >= -10 && roll <= -1 || roll >= 0 && roll <= 10)) { //STAY POSITION
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("1");
+        CurrentGes = 1;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("2");
+        CurrentGes = 2;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("3");
+        CurrentGes = 3;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle <= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("6");
+        CurrentGes = 6;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("7");
+        CurrentGes = 7;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle <= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("8");
+        CurrentGes = 8;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("9");
+        CurrentGes = 9;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle <= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("12");
+        CurrentGes = 12;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("13");
+        CurrentGes = 13;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("14");
+        CurrentGes = 14;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("15");
+        CurrentGes = 15;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle <= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("16");
+        CurrentGes = 16;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle >= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("18");
+        CurrentGes = 18;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("27");
+        CurrentGes = 27;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("39");
+        CurrentGes = 39;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+    } //END OF STAY POSITION
+    else if ((roll >= 30 && roll <= 120) && ((pitch >= 0 && pitch <= 20) or (pitch >= -30 && pitch <= -1))) { //FOR RIGHT POSITIONING
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("19");
+        CurrentGes = 19;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("20");
+        CurrentGes = 20;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("21");
+        CurrentGes = 21;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("23");
+        CurrentGes = 23;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("26");
+        CurrentGes = 26;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle <= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("28");
+        CurrentGes = 28;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("32");
+        CurrentGes = 32;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle <= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("34");
+        CurrentGes = 34;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle <= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("41");
+        CurrentGes = 41;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("43");
+        CurrentGes = 43;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle <= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("48");
+        CurrentGes = 48;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("50");
+        CurrentGes = 50;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+    } //END OF RIGTH POSITION
+    else if ((roll >= -120 && roll <= -30) && ((pitch >= 0 && pitch <= 20) or (pitch >= -30 && pitch <= -1))) { //FOR LEFT POSITIONING
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("4");
+        CurrentGes = 4;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle <= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("10");
+        CurrentGes = 10;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("17");
+        CurrentGes = 17;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("25");
+        CurrentGes = 25;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("29");
+        CurrentGes = 29;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle <= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("42");
+        CurrentGes = 42;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("44");
+        CurrentGes = 44;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle >= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("46");
+        CurrentGes = 46;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("47");
+        CurrentGes = 47;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("49");
+        CurrentGes = 49;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+    } //END OF LEFT POSITION
+    else if (pitch >= 0 && pitch <= 40 && (roll >= -180 && roll <= -150 || roll >= 150 && roll <= 180)) { //FOR DOWN POSITIONING
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("11");
+        CurrentGes = 11;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("22");
+        CurrentGes = 22;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("30");
+        CurrentGes = 30;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("31");
+        CurrentGes = 31;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle <= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("33");
+        CurrentGes = 33;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("35");
+        CurrentGes = 35;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle <= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("37");
+        CurrentGes = 37;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("38");
+        CurrentGes = 38;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle <= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("40");
+        CurrentGes = 40;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("45");
+        CurrentGes = 45;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+    } //END OF DOWN POSITION
+    else if (pitch >= 60 && pitch <= 90) { //FOR FORWARD POSITION
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("5");
+        CurrentGes = 5;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle <= ThumbLimit && IndexAngle <= IndexLimit && MiddleAngle <= MiddleLimit && RingAngle <= RingLimit && SmallAngle <= SmallLimit) {
+        Serial.println("24");
+        CurrentGes = 24;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+      if (ThumbAngle >= ThumbLimit && IndexAngle >= IndexLimit && MiddleAngle >= MiddleLimit && RingAngle >= RingLimit && SmallAngle >= SmallLimit) {
+        Serial.println("36");
+        CurrentGes = 36;
+        RcvdData();
+      }
+      LedOfFingers(ThumbAngle, IndexAngle, MiddleAngle, RingAngle, SmallAngle);
+    } //END OF FORWARD POSITION
+  } // END OF STARTGESTURE == TRUE
+  if (StartGesture == true) {
+    SerialVal = true;
+  }
+} // END OF VOID LOOP
+
+void RcvdData() {
+  delay(500);
+  int TmeSleep = 0;
+  int Attempt = 0;
+  while (StartGesture == true && TmeSleep <= 2000) { //
+    while (Serial.available()) {
+      delay(5);
+      char c = Serial.read();
+      if (c == '#') {
+        break;
+      }
+      voice += c;
+    }//end of checking serial
+
+    if (voice.length() > 0) {
+      if (voice == "Not Set") {
+        Serial.println("255");
+        delay(1000);
+        StartGesture = false;
+        SerialVal = false;
+        CurrentGes = 0;
+        voice = "";
+        break;
+      } else {
+        Serial.println(voice);
+        StartGesture = false;
+        voice = "";
+        SerialVal = false;
+        CurrentGes = 0;
+        delay(1000);
+        Serial.println("355");
+        break;
+      }
+    } else {
+      TmeSleep++;
+      if (TmeSleep >= 2000 && CurrentGes > 0 && Attempt < 1) {
+        Serial.println(CurrentGes);
+        TmeSleep = 0;
+        Attempt++;
+        if (Attempt >= 1) {
+          delay(1000);
+          StartGesture = false;
+          SerialVal = false;
+          CurrentGes = 0;
+          delay(1000);
+          Serial.println("256");
+          break;
+        }
+      }
+    }
+    delay(1);
+  }
+}
+
+void LedOfFingers(float ThumbAngles, float IndexAngles, float MiddleAngles, float RingAngles, float SmallAngles) {
+  if (ThumbAngles >= ThumbLimit) {
+    digitalWrite(LedThumb, HIGH);
+  } else {
+    digitalWrite(LedThumb, LOW);
+  }
+
+  if (IndexAngles >= IndexLimit) {
+    digitalWrite(LedIndexs, HIGH);
+  } else {
+    digitalWrite(LedIndexs, LOW);
+  }
+
+  if (MiddleAngles >= MiddleLimit) {
+    digitalWrite(LedMiddle, HIGH);
+  } else {
+    digitalWrite(LedMiddle, LOW);
+  }
+
+  if (RingAngles >= RingLimit) {
+    digitalWrite(LedRing, HIGH);
+  } else {
+    digitalWrite(LedRing, LOW);
+  }
+
+  if (SmallAngles >= SmallLimit) {
+    digitalWrite(LedSmallss, HIGH);
+  } else {
+    digitalWrite(LedSmallss, LOW);
+  }
+}
