@@ -1,2 +1,12 @@
-# Capstone-Project
-Our Capstone Project "The Speaking Glove"
+# Capstone-Project "THE SPEAKING GLOVE"
+
+SPEAKING GLOVE DEVELOPERS:
+
+DELLOSA, JOHN RUSSEL B.
+VICENTE, REALYN P.
+CASANOVA, JOHN LLOYD B.
+CLERIGO, JEFFRY C.
+GALLARDO, MARIVIC B.
+
+Colegio de Montalban (2019)
+BSIT-4A
